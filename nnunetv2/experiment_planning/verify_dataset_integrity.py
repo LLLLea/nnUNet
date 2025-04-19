@@ -125,6 +125,8 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
     :param folder:
     :return:
     """
+
+    # 检查dataset.josn 是否存在并加载内容
     assert isfile(join(folder, "dataset.json")), f"There needs to be a dataset.json file in folder, folder={folder}"
     dataset_json = load_json(join(folder, "dataset.json"))
 
@@ -143,6 +145,7 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
                                                              str([i for i in required_keys if i not in dataset_keys]),
                                                              str([i for i in dataset_keys if i not in required_keys]))
 
+    # 获取数据集信息
     expected_num_training = dataset_json['numTraining']
     num_modalities = len(dataset_json['channel_names'].keys()
                          if 'channel_names' in dataset_json.keys()
@@ -200,7 +203,9 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
     reader_writer_class = determine_reader_writer_from_dataset_json(dataset_json, dataset[dataset.keys().__iter__().__next__()]['images'][0])
 
     # check whether only the desired labels are present
+    # 创建多进程池 spwan创建新的进程，启动新的python解释器，适用于跨平台多进程处理。
     with multiprocessing.get_context("spawn").Pool(num_processes) as p:
+        # p.starmap 并行调用verify_labels函数
         result = p.starmap(
             verify_labels,
             zip(labelfiles, [reader_writer_class] * len(labelfiles), [expected_labels] * len(labelfiles))
@@ -226,8 +231,32 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
     print('####################\n')
 
 
+def square(x):
+    return x *x
+
+def add(x, y):
+    return x + y
+
+def test_mp():
+    nums = [i for i in range(10)]
+    # multiprocessing.get_context("spawn") "spawn" 是一种启动方式，在 Windows 系统默认使用.
+    # 通过指定启动方式确保多进程程序跨平台稳定运行
+    with multiprocessing.Pool(processes=4) as pool:
+        res_s = pool.map(square, nums)
+        # starmap 接受tuple
+        res_m = pool.starmap(add, zip(nums, nums))
+    print(res_s)
+    print(res_m)
+
+
+
 if __name__ == "__main__":
     # investigate geometry issues
-    example_folder = join(nnUNet_raw, 'Dataset250_COMPUTING_it0')
-    num_processes = 6
-    verify_dataset_integrity(example_folder, num_processes)
+    # example_folder = join(nnUNet_raw, 'Dataset250_COMPUTING_it0')
+    # num_processes = 6
+    # verify_dataset_integrity(example_folder, num_processes)
+    test_mp()
+
+
+
+
